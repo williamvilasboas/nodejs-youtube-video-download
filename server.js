@@ -1,4 +1,5 @@
 const fs = require('fs')
+const path = require('path')
 const youtubedl = require('youtube-dl')
 
 const express = require('express');
@@ -37,11 +38,16 @@ app.post('/download', async function (req, res, next) {
       video.on('info', function(info) {
         console.log('Download started')
         console.log('filename: ' + info._filename)
-        console.log('size: ' + info.size)
+        console.log('size: ' + info.size);
+
+        let output = path.join(__dirname, 'downloads', info._filename);
+        video.pipe(fs.createWriteStream(output), { flags: 'a' }).on('finish', () => {
+          res.header('Content-Disposition', `attachment; filename="${info._filename}"`);
+          return fs.createReadStream(output).pipe(res);
+        })
       })
-      video.pipe(res);
     } catch (err) {
-        console.log(err);
+      return res.status(500).send(err);
     }
 })
 app.listen(9008);
